@@ -55,19 +55,27 @@ class ComputeCostAndGrad:
         return cost, grad
 
     def forwardPass(self, model, tree):
-
+        print tree.word
         if tree.is_leaf():
+
             word_index = self.getWordIndex(model, tree.word)
             tree.word_vector = model.L[:, word_index]
         else:
             left_child = tree.left
             right_child = tree.right
-            self.forwardPass(model, left_child)
-            self.forwardPass(model, right_child)
-
-            tree.word_vector = self.composition(model, left_child.word_vector, right_child.word_vector)
+            if left_child is not None and right_child is not None:
+                self.forwardPass(model, left_child)
+                self.forwardPass(model, right_child)
+                tree.word_vector = self.composition(model, left_child.word_vector, right_child.word_vector)
+            elif left_child is None and right_child is not None:
+                self.forwardPass(model, right_child)
+                tree.word_vector = self.composition(model, np.zeros(model.dim), right_child.word_vector)
+            elif left_child is not None and right_child is None:
+                self.forwardPass(model, left_child)
+                tree.word_vector = self.composition(model, left_child.word_vector, np.zeros(model.dim))
 
         tree.word_vector = np.tanh(tree.word_vector)
+
 
     def backwardPass(self, model, tree, dJ_dz_prop):
 
@@ -83,7 +91,12 @@ class ComputeCostAndGrad:
             self.dJ_dL[:, word_index] += dJ_dz_full
         else:
             # None leaf node updates W, V matrices
-            c_vector = np.hstack([tree.subtrees[0].word_vector, tree.subtrees[1].word_vector])
+            if tree.left is None and tree.right is not None:
+                c_vector = np.hstack([np.zeros(model.dim), tree.right.word_vector])
+            elif tree.left is not None and tree.right is None:
+                c_vector = np.hstack([tree.left.word_vector, np.zeros(model.dim)])
+            elif tree.left is not None and tree.right is not None:
+                c_vector = np.hstack([tree.left.word_vector, tree.right.word_vector])
 
             self.dJ_dW += np.outer(dJ_dz_full, np.append(c_vector, [1]))
             assert self.dJ_dW.shape == model.W.shape,"composition W dim is incorrect"
@@ -105,8 +118,10 @@ class ComputeCostAndGrad:
             dJ_dz_down_right = dJ_dz_down[model.dim:]
             assert dJ_dz_down_left.size == dJ_dz_down_right.size, "down gradient left&right dim mismatch"
 
-            self.backwardPass(model, tree.left, dJ_dz_down_left)
-            self.backwardPass(model, tree.right, dJ_dz_down_right)
+            if tree.left:
+                self.backwardPass(model, tree.left, dJ_dz_down_left)
+            if tree.right:
+                self.backwardPass(model, tree.right, dJ_dz_down_right)
 
     def calculateTotalGradient(self, model):
         grad = np.zeros(model.num_parameters)

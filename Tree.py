@@ -1,12 +1,12 @@
 class Node():
 
-    def __init__(self, data=None):
-        self.data = data
+    def __init__(self, word=None):
+        self.word = word
         self.left = None
         self.right = None
         self.word_vector = None
 
-    def isLeaf(self):
+    def is_leaf(self):
         if self.left is None and self.right is None:
             return True
         else:
@@ -14,7 +14,7 @@ class Node():
 
     def word_yield(self):
         if self.left is None and self.right is None:
-            return self.data
+            return self.word
 
         ans=''
         if self.left:
@@ -25,7 +25,7 @@ class Node():
 
     def clone(self):
         ans=Node()
-        ans.data=self.data
+        ans.word=self.word
         ans.word_vector=self.word_vector
         if self.left:
             ans.left=self.left.clone()
