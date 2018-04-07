@@ -69,8 +69,32 @@ for my_string in lines:
     root=stringToTreeWrapper(pre)
     trees_train.append(root)
 
-#for tree in trees_train:
-#    print tree.word_yield()
+def getMeWord(root):
+    if root.left is None:
+        return root.word
+    return getMeWord(root.left)
+
+def preOrder(root):
+    if root.left is not None and root.right is None:
+        root.word=getMeWord(root.left)
+        root.left=None
+        return
+    preOrder(root.left)
+    preOrder(root.right)
+
+for tree in trees_train:
+    preOrder(tree)
+    print tree.word_yield()
+
+def check(root):
+    if root.left is None and root.right is None:
+        return
+
+    if root.left is not None and root.right is None:
+        print "WRONG!!!!!!!!!!!"
+
+for tree in trees_train:
+    check(tree)
 
 dictionary = utils.constructCompactDictionary(trees_train)
 trainObj = Train_LBFGS(dictionary, trees_train)
